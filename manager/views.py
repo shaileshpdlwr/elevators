@@ -2,7 +2,6 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from .models import Elevator,Request
 from .serializers import ElevatorInitializationSerializer,RequestSerializer,ElevatorSerializer
-
 # Create your views here.
 
 class ElevatorInitializationViewSet(viewsets.ViewSet):
@@ -13,6 +12,7 @@ class ElevatorInitializationViewSet(viewsets.ViewSet):
         serializer = ElevatorInitializationSerializer(data=request.data)
         if serializer.is_valid():
             number_of_elevators = serializer.validated_data['number_of_elevators']
+            Elevator.objects.all().delete()        
             for elevator_id in range(1, number_of_elevators + 1):
                 Elevator.objects.create(elevator_id=elevator_id)
             return Response({"message": f"{number_of_elevators} elevators created successfully."}, status=status.HTTP_201_CREATED)
@@ -25,8 +25,9 @@ class RequestViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = RequestSerializer
     def get_queryset(self):
         elevator_id = self.kwargs['elevator_id']
+        queryset = Request.objects.filter(elevator_id=elevator_id)
         return Request.objects.filter(elevator_id=elevator_id)
-
+     
 
 class RequestElevatorViewSet(viewsets.ModelViewSet):
     """
@@ -61,9 +62,8 @@ class RequestElevatorViewSet(viewsets.ModelViewSet):
         elevator.destination_floor = floor
         elevator.save()
 
-        request_obj = Request.objects.create(elevator=elevator, floor=floor, direction=direction)
-
-        return Response(RequestSerializer(request_obj).data, status=status.HTTP_201_CREATED)
+        Request.objects.create(elevator=elevator, floor=floor, direction=direction)
+        return Response({"message":"Requested Successfully"}, status=status.HTTP_201_CREATED)
     
 
 class ElevatorViewSet(viewsets.ModelViewSet):
@@ -74,13 +74,22 @@ class ElevatorViewSet(viewsets.ModelViewSet):
     queryset = Elevator.objects.all()
     serializer_class = ElevatorSerializer
     def retrieve(self, request, pk=None):
-        elevator = self.get_object()
+        elevator_id = request.query_params.get('elevator_id',"")
+        try:
+            elevator = Elevator.objects.get(elevator_id=elevator_id)
+        except Exception as e:
+            print("Exception at get_next_destination_floor :",e)
+            return Response({"message": "Invalid Elevator ID"})   
         status = elevator.get_current_status()
         return Response(status)
-
+    
     def get_next_destination_floor(self, request, pk=None):
-        print(self.get_object(),"self-----")
-        elevator = self.get_object()
+        elevator_id = request.query_params.get('elevator_id',"")
+        try:
+            elevator = Elevator.objects.get(elevator_id=elevator_id)
+        except Exception as e:
+            print("Exception at get_next_destination_floor :",e)
+            return Response({"message": "Invalid Elevator ID"})    
         next_destination_floor = elevator.get_next_destination_floor()
         return Response({"next_destination_floor": next_destination_floor})
 
@@ -94,12 +103,40 @@ class ElevatorMarkViewSet(viewsets.ModelViewSet):
     serializer_class = ElevatorSerializer
 
     def mark_elevator_maintenance(self, request, pk=None):
+        elevator_id = request.query_params.get('elevator_id',"")
         try:
-            elevator = self.get_object()
-        except Elevator.DoesNotExist:
-            return Response({"message": "Elevator not found."}, status=status.HTTP_404_NOT_FOUND)
+            elevator = Elevator.objects.get(elevator_id=elevator_id)
+
+        except Exception as e:
+            print("Exception at mark_elevator_maintenance :",e)
+            return Response({"message": "Invalid Elevator ID"}) 
 
         elevator.is_operational = False
         elevator.save()
 
         return Response({"message": f"Elevator {elevator.elevator_id} marked as not working/maintenance."}, status=status.HTTP_200_OK)
+
+
+class ElevatorDoorStatusViewSet(viewsets.ModelViewSet):
+    """
+    To change or Update Door Status : OPEN/CLOSED
+    """
+    queryset = Elevator.objects.all()
+    serializer_class = ElevatorSerializer
+
+    def door_status(self, request, pk=None):
+        door_status = request.query_params.get('door_status',"")
+        elevator_id = request.query_params.get('elevator_id',"")
+        try:
+            elevator = Elevator.objects.get(elevator_id=elevator_id)
+
+        except Exception as e:
+            print("Exception at door_status :",e)
+            return Response({"message": "Invalid Elevator ID"}) 
+        door_status = door_status.upper()
+        if door_status not in ['OPEN','CLOSED']:
+            return Response({"message": "Invalid Elevator door status, USE 'OPEN' or 'CLOSED' "}, status=status.HTTP_404_NOT_FOUND)
+        elevator.door_status = door_status
+        elevator.save()
+
+        return Response({"message": f"Door Status of Elevator {elevator.elevator_id} is changed to {door_status}."}, status=status.HTTP_200_OK)
