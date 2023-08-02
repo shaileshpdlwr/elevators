@@ -25,8 +25,7 @@ class RequestViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = RequestSerializer
     def get_queryset(self):
         elevator_id = self.kwargs['elevator_id']
-        queryset = Request.objects.filter(elevator_id=elevator_id)
-        return Request.objects.filter(elevator_id=elevator_id)
+        return Request.objects.filter(elevator_id__elevator_id=elevator_id)
      
 
 class RequestElevatorViewSet(viewsets.ModelViewSet):

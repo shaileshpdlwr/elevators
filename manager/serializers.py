@@ -8,7 +8,8 @@ class ElevatorInitializationSerializer(serializers.Serializer):
 class RequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = Request
-        fields = '__all__'
+        fields = ('direction','floor')
+    
 
 class ElevatorSerializer(serializers.ModelSerializer):
     class Meta:

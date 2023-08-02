@@ -37,11 +37,6 @@ class Elevator(models.Model):
         return next_floor
 
 class Request(models.Model):
-    DIRECTION_CHOICES = [
-        ('UP', 'Up'),
-        ('DOWN', 'Down'),
-    ]
-
     elevator = models.ForeignKey(Elevator, on_delete=models.CASCADE)
     floor = models.IntegerField()
     direction = models.CharField(max_length=10, choices=DIRECTION_CHOICES)
