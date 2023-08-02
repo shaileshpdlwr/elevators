@@ -20,5 +20,4 @@ from manager.views import ElevatorViewSet
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('manager.urls')),
-    path('elevators/<int:pk>/next-destination/', ElevatorViewSet.as_view({'get': 'get_next_destination_floor'}), name='next-destination'),
 ]
